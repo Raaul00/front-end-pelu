@@ -1,6 +1,12 @@
-import { Form, json, useActionData, useLoaderData } from "@remix-run/react";
+import {
+  Form,
+  json,
+  redirect,
+  useActionData,
+  useLoaderData,
+} from "@remix-run/react";
 import { sessionStorage } from "../utils/session.server";
-import { LoaderFunction } from "@remix-run/node";
+import { LoaderFunction, ActionFunction } from "@remix-run/node";
 
 // Definim els tipus correctes
 interface Client {
@@ -45,7 +51,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     fetch("http://localhost/api/services", {
       headers: { Authorization: `Bearer ${token}` },
     }),
-    fetch("http://localhost/api/employees", {
+    fetch("http://localhost/api/users", {
       headers: { Authorization: `Bearer ${token}` },
     }),
   ]);
@@ -59,6 +65,49 @@ export const loader: LoaderFunction = async ({ request }) => {
   const employees: Employee[] = await employeesRes.json();
 
   return json<LoaderData>({ clients, services, employees });
+};
+
+// 🔹 Funció action per gestionar l'enviament del formulari
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const client_id = formData.get("client_id");
+  const service_id = formData.get("service_id");
+  const employee_id = formData.get("employee_id");
+  const reservation_time = formData.get("reservation_time");
+
+  if (!client_id || !service_id || !employee_id || !reservation_time) {
+    return json({ error: "Tots els camps són obligatoris" }, { status: 400 });
+  }
+
+  const session = await sessionStorage.getSession(
+    request.headers.get("Cookie")
+  );
+  const token = session.get("token");
+
+  if (!token) {
+    return redirect("/login");
+  }
+
+  const apiUrl = "http://localhost/api/reservations";
+  const response = await fetch(apiUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      client_id,
+      service_id,
+      employee_id,
+      reservation_time,
+    }),
+  });
+
+  if (!response.ok) {
+    return json({ error: "Error creant la reserva" }, { status: 500 });
+  }
+
+  return redirect("/reserves");
 };
 
 export default function CrearReserva() {

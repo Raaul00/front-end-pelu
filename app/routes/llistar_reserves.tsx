@@ -1,144 +1,145 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "@remix-run/react";
+import { Form, json, redirect, useLoaderData } from "@remix-run/react";
+import { sessionStorage } from "../utils/session.server";
+import { LoaderFunction, ActionFunction } from "@remix-run/node";
 
-interface Reserva {
+interface Reservation {
   id: number;
-  clientName: string;
-  date: string;
-  status: string;
+  client_name: string;
+  service_name: string;
+  employee_name: string;
+  reservation_time: string;
 }
 
-export default function ReservesList() {
-  const [reserves, setReserves] = useState<Reserva[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  useNavigate();
+interface LoaderData {
+  reservations: Reservation[];
+}
 
-  // 🔹 GET: Obtenir les reserves des del servidor
-  useEffect(() => {
-    const fetchReserves = async () => {
-      try {
-        const response = await fetch("http://localhost/api/reserves", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+// 🔹 Carreguem totes les reserves
+export const loader: LoaderFunction = async ({ request }) => {
+  const session = await sessionStorage.getSession(
+    request.headers.get("Cookie")
+  );
+  const token = session.get("token");
 
-        if (!response.ok) {
-          throw new Error("Error en carregar les reserves");
-        }
+  if (!token) {
+    throw new Response("No s'ha trobat el token d'autenticació.", {
+      status: 401,
+    });
+  }
 
-        const data: Reserva[] = await response.json();
-        setReserves(data);
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Error desconegut en carregar les reserves");
-        }
-      }
-    };
+  const res = await fetch("http://localhost/api/reservations", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-    fetchReserves();
-  }, []);
+  if (!res.ok) {
+    throw new Response("Error carregant les reserves", { status: 500 });
+  }
 
-  // 🔹 PUT: Modificar una reserva
-  const handleEdit = async (id: number) => {
-    const newStatus = prompt("Introdueix el nou estat de la reserva:");
+  const reservations: Reservation[] = await res.json();
+  return json<LoaderData>({ reservations });
+};
 
-    if (newStatus) {
-      try {
-        const response = await fetch(`http://localhost/api/reserves/${id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ status: newStatus }),
-        });
+// 🔹 Funció per modificar o eliminar reserves
+export const action: ActionFunction = async ({ request }) => {
+  const formData = await request.formData();
+  const actionType = formData.get("action");
+  const reservation_id = formData.get("reservation_id");
+  const reservation_time = formData.get("reservation_time");
 
-        if (response.ok) {
-          alert("Reserva actualitzada correctament");
-          setReserves((prev) =>
-            prev.map((reserva) =>
-              reserva.id === id ? { ...reserva, status: newStatus } : reserva
-            )
-          );
-        } else {
-          alert("Error en modificar la reserva");
-        }
-      } catch (error: unknown) {
-        alert("Error del servidor en modificar la reserva");
-      }
-    }
-  };
+  const session = await sessionStorage.getSession(
+    request.headers.get("Cookie")
+  );
+  const token = session.get("token");
 
-  // 🔹 DELETE: Eliminar una reserva
-  const handleDelete = async (id: number) => {
-    if (confirm("Estàs segur que vols eliminar aquesta reserva?")) {
-      try {
-        const response = await fetch(`http://localhost/api/reserves/${id}`, {
-          method: "DELETE",
-        });
+  if (!token) {
+    return redirect("/login");
+  }
 
-        if (response.ok) {
-          alert("Reserva eliminada correctament");
-          setReserves((prev) => prev.filter((reserva) => reserva.id !== id));
-        } else {
-          alert("Error en eliminar la reserva");
-        }
-      } catch (error: unknown) {
-        alert("Error del servidor en eliminar la reserva");
-      }
-    }
-  };
+  if (actionType === "delete") {
+    await fetch(`http://localhost/api/reservations/${reservation_id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } else if (actionType === "update") {
+    await fetch(`http://localhost/api/reservations/${reservation_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reservation_time }),
+    });
+  }
+  return redirect("/reserves");
+};
+
+export default function LlistarReserves() {
+  const { reservations } = useLoaderData<LoaderData>();
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
-        Gestió de Reserves
+        Llistar Reserves
       </h1>
 
-      <div className="bg-white shadow-lg rounded-xl p-6 max-w-5xl mx-auto">
-        {error ? (
-          <p className="text-red-500 text-center">{error}</p>
-        ) : reserves.length === 0 ? (
-          <p className="text-center text-gray-600">
-            No hi ha reserves disponibles.
-          </p>
+      <div className="bg-white shadow-lg rounded-xl p-6 max-w-4xl mx-auto">
+        {reservations.length === 0 ? (
+          <p className="text-center text-gray-500">No hi ha reserves.</p>
         ) : (
-          <table className="w-full border-collapse rounded-lg overflow-hidden">
+          <table className="w-full border-collapse border border-gray-300">
             <thead>
-              <tr className="bg-blue-600 text-white">
-                <th className="p-3 text-left">Nom del Client</th>
-                <th className="p-3 text-left">Data</th>
-                <th className="p-3 text-left">Estat</th>
-                <th className="p-3 text-center">Accions</th>
+              <tr className="bg-gray-200">
+                <th className="border p-2">Client</th>
+                <th className="border p-2">Servei</th>
+                <th className="border p-2">Empleat</th>
+                <th className="border p-2">Data i Hora</th>
+                <th className="border p-2">Accions</th>
               </tr>
             </thead>
             <tbody>
-              {reserves.map((reserva) => (
-                <tr
-                  key={reserva.id}
-                  className="bg-gray-100 hover:bg-gray-200 transition"
-                >
-                  <td className="p-3 border text-black">
-                    {reserva.clientName}
-                  </td>
-                  <td className="p-3 border text-black">{reserva.date}</td>
-                  <td className="p-3 border text-black">{reserva.status}</td>
-                  <td className="p-3 border text-center">
-                    <button
-                      onClick={() => handleEdit(reserva.id)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded mr-2"
-                    >
-                      ✏️ Editar
-                    </button>
-                    <button
-                      onClick={() => handleDelete(reserva.id)}
-                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
-                    >
-                      🗑️ Eliminar
-                    </button>
+              {reservations.map((reservation) => (
+                <tr key={reservation.id} className="text-center">
+                  <td className="border p-2">{reservation.client_name}</td>
+                  <td className="border p-2">{reservation.service_name}</td>
+                  <td className="border p-2">{reservation.employee_name}</td>
+                  <td className="border p-2">{reservation.reservation_time}</td>
+                  <td className="border p-2 space-x-2">
+                    <Form method="post" className="inline">
+                      <input
+                        type="hidden"
+                        name="reservation_id"
+                        value={reservation.id}
+                      />
+                      <input
+                        type="datetime-local"
+                        name="reservation_time"
+                        defaultValue={reservation.reservation_time}
+                        className="border rounded p-1"
+                      />
+                      <button
+                        type="submit"
+                        name="action"
+                        value="update"
+                        className="bg-blue-500 text-white p-1 rounded"
+                      >
+                        Modificar
+                      </button>
+                    </Form>
+                    <Form method="post" className="inline">
+                      <input
+                        type="hidden"
+                        name="reservation_id"
+                        value={reservation.id}
+                      />
+                      <button
+                        type="submit"
+                        name="action"
+                        value="delete"
+                        className="bg-red-500 text-white p-1 rounded"
+                      >
+                        Eliminar
+                      </button>
+                    </Form>
                   </td>
                 </tr>
               ))}

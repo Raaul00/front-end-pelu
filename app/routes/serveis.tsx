@@ -27,7 +27,7 @@ export default function ServeisRoute() {
         {/* Opcions per llistar o afegir serveis */}
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link
-            to="/llistar_serveis"
+            to="/mostrar_serveis"
             className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
           >
             Llistar Serveis

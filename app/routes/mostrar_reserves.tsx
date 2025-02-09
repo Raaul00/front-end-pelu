@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 // Exemple d'una ruta API per obtenir reserves
-const API_URL = "http://localhost/api/reserves"; // Assegura't que aquesta és la URL correcta
+const API_URL = "http://localhost/api/reservations"; // Assegura't que aquesta és la URL correcta
 
 export default function MostrarReserves() {
   interface Reserve {
@@ -29,7 +29,7 @@ export default function MostrarReserves() {
           throw new Error("Error al carregar les reserves");
         }
         const data = await response.json();
-        setReserves(data); 
+        setReserves(data);
       } catch (error) {
         console.error("Error:", error);
       } finally {

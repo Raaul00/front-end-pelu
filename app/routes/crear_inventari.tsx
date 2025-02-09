@@ -4,6 +4,20 @@ import { sessionStorage } from "../utils/session.server";
 
 type ActionData = { error?: string };
 
+// Loader per GET - Comprova si l'usuari ja està logat
+export async function loader({ request }: { request: Request }) {
+  const session = await sessionStorage.getSession(
+    request.headers.get("Cookie")
+  );
+  const token = session.get("token");
+
+  if (!token) {
+    return redirect("/login"); // Si l'usuari no està logat, redirigeix-lo al login
+  }
+
+  return json({});
+}
+
 export async function action({ request }: { request: Request }) {
   const session = await sessionStorage.getSession(
     request.headers.get("Cookie")
@@ -20,6 +34,10 @@ export async function action({ request }: { request: Request }) {
   const formData = await request.formData();
   const product_name = formData.get("product_name");
   const quantity = formData.get("quantity");
+
+  if (!product_name || !quantity) {
+    return json({ error: "Tots els camps són obligatoris" }, { status: 400 });
+  }
 
   try {
     const response = await fetch("http://localhost/api/inventories", {
@@ -51,6 +69,7 @@ export async function action({ request }: { request: Request }) {
       );
     }
 
+    // 🔹 Afegit: Redirigir a la pàgina d'inventari després d'afegir un producte correctament
     return redirect("/inventari");
   } catch (error) {
     console.error("Error en la petició:", error);
@@ -61,15 +80,18 @@ export async function action({ request }: { request: Request }) {
   }
 }
 
-export default function NewInventory() {
+export default function CrearInventari() {
   const actionData = useActionData<ActionData>();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
-      <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">
-          Afegir Producte a l&apos;Inventari
-        </h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">
+        Perruqueria Cirvianum
+      </h1>
+      <div className="bg-white p-8 rounded shadow-md w-full max-w-md">
+        <h2 className="text-2xl font-semibold mb-4 text-center text-gray-800">
+          Afegir Inventari
+        </h2>
         {actionData?.error && (
           <p className="text-red-500 text-sm mb-4">Error: {actionData.error}</p>
         )}
@@ -79,14 +101,14 @@ export default function NewInventory() {
             name="product_name"
             placeholder="Nom del Producte"
             required
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 border border-gray-300 rounded bg-white text-black"
           />
           <input
             type="number"
             name="quantity"
             placeholder="Quantitat"
             required
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 border border-gray-300 rounded bg-white text-black"
           />
           <button
             type="submit"

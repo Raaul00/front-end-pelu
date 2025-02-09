@@ -17,12 +17,12 @@ export async function loader({ request }: { request: Request }) {
 
   if (!token) {
     return json(
-      { error: "No s'ha trobat el token d'autenticació" },
+      { error: "No s'ha trobat el token d'autenticació", inventari: [] },
       { status: 401 }
     );
   }
 
-  const response = await fetch("http://localhost/api/inventari", {
+  const response = await fetch("http://localhost/api/inventories", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -30,12 +30,13 @@ export async function loader({ request }: { request: Request }) {
 
   if (!response.ok) {
     return json(
-      { error: "Error en carregar l'inventari" },
+      { error: "Error en carregar l'inventari", inventari: [] },
       { status: response.status }
     );
   }
 
-  return json(await response.json());
+  const data = await response.json();
+  return json({ inventari: Array.isArray(data) ? data : [] });
 }
 
 export async function action({ request }: { request: Request }) {
@@ -56,7 +57,7 @@ export async function action({ request }: { request: Request }) {
   const id = formData.get("id");
 
   if (actionType === "delete" && id) {
-    await fetch(`http://localhost/api/inventari/${id}`, {
+    await fetch(`http://localhost/api/inventories/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -68,7 +69,7 @@ export async function action({ request }: { request: Request }) {
     const name = formData.get("name");
     const quantity = formData.get("quantity");
 
-    await fetch(`http://localhost/api/inventari/${id}`, {
+    await fetch(`http://localhost/api/inventories/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -84,7 +85,7 @@ export async function action({ request }: { request: Request }) {
 }
 
 export default function InventariList() {
-  const inventari = useLoaderData<Inventari[]>();
+  const { inventari } = useLoaderData<{ inventari: Inventari[] }>();
   const [selectedItem, setSelectedItem] = useState<Inventari | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -109,7 +110,7 @@ export default function InventariList() {
             </tr>
           </thead>
           <tbody>
-            {inventari.map((item, index) => (
+            {(inventari || []).map((item, index) => (
               <tr
                 key={item.id}
                 className={`${

@@ -6,8 +6,8 @@ import { useState } from "react";
 interface Servei {
   id: number;
   name: string;
-  description: string;
   price: number;
+  duration: number;
 }
 
 export async function loader({ request }: { request: Request }) {
@@ -23,7 +23,7 @@ export async function loader({ request }: { request: Request }) {
     );
   }
 
-  const response = await fetch("http://localhost/api/serveis", {
+  const response = await fetch("http://localhost/api/services", {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -36,7 +36,8 @@ export async function loader({ request }: { request: Request }) {
     );
   }
 
-  return json(await response.json());
+  const data = await response.json();
+  return json(Array.isArray(data) ? data : []); // Garanteix que sigui un array
 }
 
 export async function action({ request }: { request: Request }) {
@@ -57,7 +58,7 @@ export async function action({ request }: { request: Request }) {
   const id = formData.get("id");
 
   if (actionType === "delete" && id) {
-    await fetch(`http://localhost/api/serveis/${id}`, {
+    await fetch(`http://localhost/api/services/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -67,16 +68,16 @@ export async function action({ request }: { request: Request }) {
 
   if (actionType === "update" && id) {
     const name = formData.get("name");
-    const description = formData.get("description");
-    const price = formData.get("price");
+    const price = Number(formData.get("price"));
+    const duration = Number(formData.get("duration"));
 
-    await fetch(`http://localhost/api/serveis/${id}`, {
+    await fetch(`http://localhost/api/services/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ name, description, price }),
+      body: JSON.stringify({ name, price, duration }),
     });
 
     return json({ success: true });
@@ -106,49 +107,59 @@ export default function ServeisList() {
           <thead>
             <tr className="bg-blue-600 text-black">
               <th className="p-3 text-left">Nom</th>
-              <th className="p-3 text-left">Descripció</th>
               <th className="p-3 text-left">Preu</th>
+              <th className="p-3 text-left">Duració (min)</th>
               <th className="p-3 text-center">Accions</th>
             </tr>
           </thead>
           <tbody>
-            {serveis.map((servei, index) => (
-              <tr
-                key={servei.id}
-                className={`${
-                  index % 2 === 0 ? "bg-gray-100" : "bg-white"
-                } hover:bg-gray-200 transition`}
-              >
-                <td className="p-3 border text-black">{servei.name}</td>
-                <td className="p-3 border text-black">{servei.description}</td>
-                <td className="p-3 border text-black">{servei.price}€</td>
-                <td className="p-3 border flex justify-center space-x-3">
-                  <button
-                    onClick={() => handleEdit(servei)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Editar
-                  </button>
-                  <Form method="post">
-                    <input type="hidden" name="actionType" value="delete" />
-                    <input type="hidden" name="id" value={servei.id} />
+            {serveis.length > 0 ? (
+              serveis.map((servei, index) => (
+                <tr
+                  key={servei.id}
+                  className={`${
+                    index % 2 === 0 ? "bg-gray-100" : "bg-white"
+                  } hover:bg-gray-200 transition`}
+                >
+                  <td className="p-3 border text-black">{servei.name}</td>
+                  <td className="p-3 border text-black">{servei.price}€</td>
+                  <td className="p-3 border text-black">
+                    {servei.duration} min
+                  </td>
+                  <td className="p-3 border flex justify-center space-x-3">
                     <button
-                      type="submit"
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                      onClick={(e) => {
-                        if (
-                          !confirm("Segur que vols eliminar aquest servei?")
-                        ) {
-                          e.preventDefault();
-                        }
-                      }}
+                      onClick={() => handleEdit(servei)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
                     >
-                      Eliminar
+                      Editar
                     </button>
-                  </Form>
+                    <Form method="post">
+                      <input type="hidden" name="actionType" value="delete" />
+                      <input type="hidden" name="id" value={servei.id} />
+                      <button
+                        type="submit"
+                        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                        onClick={(e) => {
+                          if (
+                            !confirm("Segur que vols eliminar aquest servei?")
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        Eliminar
+                      </button>
+                    </Form>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="p-3 text-center text-gray-500">
+                  No hi ha serveis disponibles
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -170,16 +181,16 @@ export default function ServeisList() {
                 className="w-full px-4 py-2 border rounded-lg"
               />
               <input
-                type="text"
-                name="description"
-                defaultValue={selectedServei.description}
+                type="number"
+                name="price"
+                defaultValue={selectedServei.price}
                 required
                 className="w-full px-4 py-2 border rounded-lg"
               />
               <input
                 type="number"
-                name="price"
-                defaultValue={selectedServei.price}
+                name="duration"
+                defaultValue={selectedServei.duration}
                 required
                 className="w-full px-4 py-2 border rounded-lg"
               />
