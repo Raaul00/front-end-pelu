@@ -177,13 +177,13 @@ export default function InventariList() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="bg-gray-800 text-black px-4 py-2 rounded-lg"
+                  className="bg-gray-800 text-white px-4 py-2 rounded-lg"
                 >
                   Cancel·lar
                 </button>
                 <button
                   type="submit"
-                  className="bg-green-500 text-black px-4 py-2 rounded-lg"
+                  className="bg-green-500 text-white px-4 py-2 rounded-lg"
                 >
                   Guardar
                 </button>

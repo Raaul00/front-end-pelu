@@ -102,7 +102,7 @@ export default function ClientsList() {
       </h1>
 
       <div className="bg-white shadow-lg rounded-xl p-6 max-w-5xl mx-auto">
-        <table className="w-full border-collapse rounded-lg overflow-hidden">
+        <table className="w-full border-collapse border border-gray-300">
           <thead>
             <tr className="bg-blue-600 text-black">
               <th className="p-3 text-left">Nom</th>
