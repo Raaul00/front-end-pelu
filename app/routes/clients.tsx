@@ -1,7 +1,24 @@
 // routes/clients.tsx
-import { Link } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
+import { json, redirect } from "@remix-run/node";
+import { sessionStorage } from "../utils/session.server";
+
+export async function loader({ request }: { request: Request }) {
+  const session = await sessionStorage.getSession(
+    request.headers.get("Cookie")
+  );
+  const token = session.get("token");
+
+  if (!token) {
+    return redirect("/login");
+  }
+
+  return json({ authenticated: true });
+}
 
 export default function ClientsRoute() {
+  useLoaderData();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-2xl text-center">

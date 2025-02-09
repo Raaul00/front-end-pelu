@@ -1,4 +1,3 @@
-// routes/reservations.tsx
 import { Link, useLoaderData } from "@remix-run/react";
 import { json, redirect } from "@remix-run/node";
 import { sessionStorage } from "../utils/session.server";
@@ -16,27 +15,28 @@ export async function loader({ request }: { request: Request }) {
   return json({ authenticated: true });
 }
 
-export default function ReservationsRoute() {
+export default function ServeisRoute() {
   useLoaderData();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-6">
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-2xl text-center">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Reserves</h1>
-        <p className="text-gray-600 mb-6">Aquí pots gestionar les reserves.</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">Serveis</h1>
+        <p className="text-gray-600 mb-6">Aquí pots gestionar els serveis.</p>
 
-        {/* Opcions per llistar o afegir reserves */}
+        {/* Opcions per llistar o afegir serveis */}
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link
-            to="/llistar_reserves"
+            to="/llistar_serveis"
             className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
           >
-            Llistar Reserves
+            Llistar Serveis
           </Link>
           <Link
-            to="/crear_reserva"
+            to="/crear_servei"
             className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
           >
-            Afegir Reserva
+            Crear Servei
           </Link>
         </div>
 

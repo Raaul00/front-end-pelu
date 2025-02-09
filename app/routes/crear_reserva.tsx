@@ -1,61 +1,69 @@
-import { Form, json, useActionData } from "@remix-run/react";
+import { Form, json, useActionData, useLoaderData } from "@remix-run/react";
 import { sessionStorage } from "../utils/session.server";
+import { LoaderFunction } from "@remix-run/node";
 
-interface ActionData {
-  error?: string;
-  success?: string;
+// Definim els tipus correctes
+interface Client {
+  id: number;
+  name: string;
 }
 
-export const action = async ({ request }: { request: Request }) => {
+interface Service {
+  id: number;
+  name: string;
+}
+
+interface Employee {
+  id: number;
+  name: string;
+}
+
+interface LoaderData {
+  clients: Client[];
+  services: Service[];
+  employees: Employee[];
+}
+
+// 🔹 Carreguem les dades abans de mostrar el formulari
+export const loader: LoaderFunction = async ({ request }) => {
   const session = await sessionStorage.getSession(
     request.headers.get("Cookie")
   );
   const token = session.get("token");
 
   if (!token) {
-    return json(
-      { error: "No s'ha trobat el token d'autenticació." },
-      { status: 401 }
-    );
+    throw new Response("No s'ha trobat el token d'autenticació.", {
+      status: 401,
+    });
   }
 
-  const formData = new URLSearchParams(await request.text());
-  const clientId = formData.get("client_id");
-  const serviceId = formData.get("service_id");
-  const employeeId = formData.get("employee_id");
-  const reservationTime = formData.get("reservation_time");
-
-  if (!clientId || !serviceId || !employeeId || !reservationTime) {
-    return json({ error: "Tots els camps són requerits." }, { status: 400 });
-  }
-
-  const res = await fetch("http://localhost/api/reservations", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      client_id: clientId,
-      service_id: serviceId,
-      employee_id: employeeId,
-      reservation_time: reservationTime,
+  // 🔸 Obtenim les dades necessàries
+  const [clientsRes, servicesRes, employeesRes] = await Promise.all([
+    fetch("http://localhost/api/clients", {
+      headers: { Authorization: `Bearer ${token}` },
     }),
-  });
+    fetch("http://localhost/api/services", {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+    fetch("http://localhost/api/employees", {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  ]);
 
-  if (!res.ok) {
-    const data = await res.json();
-    return json(
-      { error: data.message || "Error en crear la reserva." },
-      { status: res.status }
-    );
+  if (!clientsRes.ok || !servicesRes.ok || !employeesRes.ok) {
+    throw new Response("Error carregant dades", { status: 500 });
   }
 
-  return json({ success: "Reserva creada correctament!" });
+  const clients: Client[] = await clientsRes.json();
+  const services: Service[] = await servicesRes.json();
+  const employees: Employee[] = await employeesRes.json();
+
+  return json<LoaderData>({ clients, services, employees });
 };
 
 export default function CrearReserva() {
-  const actionData = useActionData<ActionData>();
+  const { clients, services, employees } = useLoaderData<LoaderData>();
+  const actionData = useActionData<{ error?: string; success?: string }>();
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -80,39 +88,57 @@ export default function CrearReserva() {
             <label htmlFor="client_id" className="block font-medium">
               Client
             </label>
-            <input
-              type="text"
+            <select
               id="client_id"
               name="client_id"
               required
               className="w-full border rounded p-2"
-            />
+            >
+              <option value="">Selecciona un client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label htmlFor="service_id" className="block font-medium">
               Servei
             </label>
-            <input
-              type="text"
+            <select
               id="service_id"
               name="service_id"
               required
               className="w-full border rounded p-2"
-            />
+            >
+              <option value="">Selecciona un servei</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label htmlFor="employee_id" className="block font-medium">
               Empleat
             </label>
-            <input
-              type="text"
+            <select
               id="employee_id"
               name="employee_id"
               required
               className="w-full border rounded p-2"
-            />
+            >
+              <option value="">Selecciona un empleat</option>
+              {employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
