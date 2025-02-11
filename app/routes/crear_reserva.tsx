@@ -30,7 +30,7 @@ interface LoaderData {
   employees: Employee[];
 }
 
-// 🔹 Carreguem les dades abans de mostrar el formulari
+//  Carreguem les dades abans de mostrar el formulari
 export const loader: LoaderFunction = async ({ request }) => {
   const session = await sessionStorage.getSession(
     request.headers.get("Cookie")
@@ -43,7 +43,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     });
   }
 
-  // 🔸 Obtenim les dades necessàries
+  //  Obtenim les dades necessàries
   const [clientsRes, servicesRes, employeesRes] = await Promise.all([
     fetch("http://localhost/api/clients", {
       headers: { Authorization: `Bearer ${token}` },
@@ -67,7 +67,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   return json<LoaderData>({ clients, services, employees });
 };
 
-// 🔹 Funció action per gestionar l'enviament del formulari
+//  Funció action per gestionar l'enviament del formulari
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const client_id = formData.get("client_id");
